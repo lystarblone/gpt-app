@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok Interface</title>
+    <style>
+        body {
+            background-color: #151618;
+            color: #fdfdfd;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            text-align: center;
+            width: 90vw;
+            max-width: 60vw;
+        }
+        .logo {
+            font-size: 3.6vw;
+            margin-bottom: 4vh;
+        }
+        .input-container {
+            background-color: #242628;
+            border-radius: 2vw;
+            padding: 1vw;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            box-shadow: 0 0.2vw 0.4vw rgba(0, 0, 0, 0.3);
+            border: 0.1vw solid #393b3d;
+        }
+        #input-field {
+            background: none;
+            border: none;
+            color: #fdfdfd;
+            font-size: 1.3vw;
+            width: 100%;
+            outline: none;
+            padding: 1vw;
+            margin-bottom: 1vh;
+            margin-left: 0.5vw;
+            text-align: left;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1vw;
+        }
+        .left-buttons {
+            display: flex;
+            gap: 1vw;
+        }
+        .button {
+            background-color: #242628;
+            border: none;
+            border-radius: 2vw;
+            color: #fdfdfd;
+            cursor: pointer;
+            font-size: 1vw;
+            padding: 0.5vw 1.5vw;
+            display: flex;
+            align-items: center;
+            gap: 0.5vw;
+            border: 0.12vw solid #393b3d;
+        }
+        .button:hover {
+            background-color: #353739;
+        }
+        .button .icon {
+            font-size: 1.4vw;
+        }
+        .right-buttons {
+            display: flex;
+            align-items: center;
+            gap: 0.5vw;
+        }
+        .right-button {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 1vw;
+            display: flex;
+            align-items: center;
+            gap: 0.3vw;
+        }
+        .right-button:hover {
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">Grok</div>
+        <div class="input-container">
+            <input type="text" id="input-field" placeholder="Что ты хочешь узнать?">
+            <div class="buttons">
+                <div class="left-buttons">
+                    <button class="button" onclick="toggleDeepSearch()"><span class="icon">🔍</span> DeepSearch</button>
+                    <button class="button think" onclick="toggleThink()"><span class="icon">💭</span> Think</button>
+                </div>
+                <div class="right-buttons">
+                    <button class="right-button">Grok 3 <span class="icon">⚙️</span></button>
+                    <button class="right-button"><span class="icon">⬇️</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
