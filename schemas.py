@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import List
 
 class MessageCreate(BaseModel):
     content: str
@@ -10,4 +11,12 @@ class MessageResponse(BaseModel):
     timestamp: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class ChatResponse(BaseModel):
+    id: int
+    created_at: datetime
+    messages: List[MessageResponse] = []
+
+    class Config:
+        from_attributes = True

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grok Interface</title>
+    <title>Grok Chat</title>
     <style>
         body {
             background-color: #151618;
@@ -24,6 +24,29 @@
         .logo {
             font-size: 3.6vw;
             margin-bottom: 4vh;
+        }
+        .chat-container {
+            background-color: #242628;
+            border-radius: 2vw;
+            padding: 1vw;
+            margin-bottom: 2vh;
+            max-height: 60vh;
+            overflow-y: auto;
+            border: 0.1vw solid #393b3d;
+        }
+        .message {
+            margin: 1vh 0;
+            padding: 0.5vw;
+            border-radius: 1vw;
+            text-align: left;
+        }
+        .user-message {
+            background-color: #353739;
+            margin-left: 10%;
+        }
+        .assistant-message {
+            background-color: #1c1e20;
+            margin-right: 10%;
         }
         .input-container {
             background-color: #242628;
@@ -99,6 +122,9 @@
 <body>
     <div class="container">
         <div class="logo">Grok</div>
+        <div class="chat-container" id="chat-container">
+            <!-- Сообщения будут добавляться сюда -->
+        </div>
         <div class="input-container">
             <input type="text" id="input-field" placeholder="Что ты хочешь узнать?" onkeypress="if(event.key === 'Enter') sendMessage()">
             <div class="buttons">
@@ -114,23 +140,66 @@
         </div>
     </div>
     <script>
+        const chatId = {{ chat_id }};
+
+        async function loadMessages() {
+            const chatContainer = document.getElementById('chat-container');
+            try {
+                const response = await fetch(`/api/chat/${chatId}/messages`);
+                if (response.ok) {
+                    const messages = await response.json();
+                    chatContainer.innerHTML = '';
+                    messages.forEach(msg => {
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = `message ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`;
+                        messageDiv.textContent = msg.content;
+                        chatContainer.appendChild(messageDiv);
+                    });
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                } else {
+                    console.error('Ошибка загрузки сообщений:', response.status);
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
         async function sendMessage() {
             const inputField = document.getElementById('input-field');
+            const chatContainer = document.getElementById('chat-container');
             const message = inputField.value.trim();
             
             if (!message) return;
-
+        
+            // Добавление сообщения пользователя в чат
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'message user-message';
+            userMessageDiv.textContent = message;
+            chatContainer.appendChild(userMessageDiv);
+        
+            // Очистка поля ввода
+            inputField.value = '';
+        
+            // Отправка сообщения на сервер
             try {
-                const response = await fetch('/api/chat', {
+                const response = await fetch(`/api/chat/${chatId}/message`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ content: message })
                 });
-
-                if (response.ok && response.redirected) {
-                    window.location.href = response.url;
+        
+                if (response.ok) {
+                    const data = await response.json();
+                    // Добавление ответа LLM в чат
+                    const assistantMessageDiv = document.createElement('div');
+                    assistantMessageDiv.className = 'message assistant-message';
+                    assistantMessageDiv.textContent = data.content;
+                    chatContainer.appendChild(assistantMessageDiv);
+        
+                    // Прокрутка чата вниз
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
                 } else {
                     console.error('Ошибка сервера:', response.status);
                 }
@@ -138,7 +207,7 @@
                 console.error('Ошибка:', error);
             }
         }
-
+        
         function toggleDeepSearch() {
             alert('DeepSearch пока не реализован');
         }
@@ -146,6 +215,9 @@
         function toggleThink() {
             alert('Think пока не реализован');
         }
+
+        // Загрузка сообщений при открытии страницы
+        window.onload = loadMessages;
     </script>
 </body>
 </html>
