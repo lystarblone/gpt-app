@@ -107,7 +107,7 @@
     <div class="container">
         <div class="logo">Grok</div>
         <div class="input-container" id="input-container">
-            <input type="text" id="input-field" placeholder="Что ты хочешь узнать?" onkeypress="if(event.key === 'Enter') sendMessage()">
+            <input type="text" id="input-field" placeholder="Что ты хочешь узнать?" onkeypress="if(event.key === 'Enter') sendMessage()" autocomplete="off">
             <div class="buttons">
                 <div class="left-buttons">
                     <button class="button" onclick="toggleDeepSearch()"><span class="icon">🔍</span> DeepSearch</button>

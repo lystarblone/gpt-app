@@ -13,14 +13,16 @@
             padding: 0;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            height: 100vh;
         }
         .container {
             width: 90vw;
             max-width: 60vw;
-            margin: 0 auto; /* Центрирование по горизонтали с отступами */
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
-            min-height: 100vh; /* Растягиваем контейнер на всю высоту */
+            min-height: 100vh;
         }
         .logo {
             font-size: 1.5vw;
@@ -30,18 +32,20 @@
             margin: 0;
         }
         .chat-container {
-            background-color: #242628;
-            border-radius: 2vw;
             padding: 1vw;
-            border: 0.1vw solid #393b3d;
             display: flex;
             flex-direction: column;
             width: 100%;
-            height: calc(100vh - 12vh); /* Высота до input-container (учитываем его высоту и отступы) */
+            height: calc(100vh - 12vh);
             overflow-y: auto;
             box-sizing: border-box;
             max-height: 75vh;
             margin-top: 1vw;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .chat-container::-webkit-scrollbar {
+            display: none;
         }
         .message {
             margin: 1vh 0;
@@ -51,11 +55,10 @@
             max-width: 70%;
         }
         .user-message {
-            background-color: #353739;
+            background-color: #242628;
             align-self: flex-end;
         }
         .assistant-message {
-            background-color: #1c1e20;
             align-self: flex-start;
         }
         .input-container {
@@ -74,6 +77,7 @@
             left: 50%;
             transform: translateX(-50%);
             box-sizing: border-box;
+            z-index: 10;
         }
         #input-field {
             background: none;
@@ -134,14 +138,38 @@
         .right-button:hover {
             color: #ccc;
         }
+        .custom-scrollbar {
+            position: fixed;
+            right: 0.5vw;
+            top: 1vh;
+            height: calc(100vh - 14vh);
+            width: 0.8vw;
+            background-color: #242628;
+            border-radius: 0.4vw;
+            z-index: 5;
+        }
+        .custom-scrollbar-thumb {
+            position: absolute;
+            width: 100%;
+            background-color: #888;
+            border-radius: 0.4vw;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .custom-scrollbar-thumb:hover {
+            background-color: #ccc;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo">Grok</div>
         <div class="chat-container" id="chat-container"></div>
+        <div class="custom-scrollbar" id="custom-scrollbar">
+            <div class="custom-scrollbar-thumb" id="custom-scrollbar-thumb"></div>
+        </div>
         <div class="input-container">
-            <input type="text" id="input-field" placeholder="Что ты хочешь узнать?" onkeypress="if(event.key === 'Enter') sendMessage()">
+            <input type="text" id="input-field" placeholder="Что ты хочешь узнать?" onkeypress="if(event.key === 'Enter') sendMessage()" autocomplete="off">
             <div class="buttons">
                 <div class="left-buttons">
                     <button class="button" onclick="toggleDeepSearch()"><span class="icon">🔍</span> DeepSearch</button>
@@ -158,38 +186,42 @@
         const urlParams = new URLSearchParams(window.location.search);
         const initialMessage = urlParams.get('message');
         const chatId = window.location.pathname.split('/').pop() || '';
-        
+        console.log('Init at:', new Date().toLocaleString('en-US', { timeZone: 'CET', hour12: true })); // 04:40 PM CEST, June 13, 2025
+
         async function initializeChat() {
             const chatContainer = document.getElementById('chat-container');
-        
-            // Проверяем валидность chatId
+            const inputField = document.getElementById('input-field');
+
             if (!chatId.match(/\d+/)) {
                 console.error('Недействительный ID чата');
                 window.location.href = '/';
                 return;
             }
-        
-            // Отображаем начальное сообщение пользователя, если оно есть
+
+            // Управление placeholder
+            inputField.addEventListener('focus', () => {
+                if (inputField.value === '') inputField.placeholder = '';
+            });
+            inputField.addEventListener('blur', () => {
+                if (inputField.value === '') inputField.placeholder = 'Что ты хочешь узнать?';
+            });
+
             if (initialMessage) {
                 const userMessageDiv = document.createElement('div');
                 userMessageDiv.className = 'message user-message';
                 userMessageDiv.textContent = decodeURIComponent(initialMessage);
                 chatContainer.appendChild(userMessageDiv);
                 chatContainer.scrollTop = chatContainer.scrollHeight;
-        
-                // Запрашиваем ответ LLM асинхронно
+
                 try {
                     const response = await fetch(`/api/chat/${chatId}/message`, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ content: decodeURIComponent(initialMessage) })
                     });
-        
+
                     if (response.ok) {
                         const data = await response.json();
-                        // Добавляем ответ LLM в чат
                         const assistantMessageDiv = document.createElement('div');
                         assistantMessageDiv.className = 'message assistant-message';
                         assistantMessageDiv.textContent = data.content;
@@ -202,18 +234,17 @@
                     console.error('Ошибка:', error);
                 }
             }
-        
-            // Загружаем существующие сообщения
+
             await loadMessages();
+            setupCustomScrollbar();
         }
-        
+
         async function loadMessages() {
             const chatContainer = document.getElementById('chat-container');
             try {
                 const response = await fetch(`/api/chat/${chatId}/messages`);
                 if (response.ok) {
                     const messages = await response.json();
-                    // Очищаем контейнер, чтобы избежать дублирования
                     chatContainer.innerHTML = '';
                     messages.forEach(msg => {
                         const messageDiv = document.createElement('div');
@@ -222,6 +253,7 @@
                         chatContainer.appendChild(messageDiv);
                     });
                     chatContainer.scrollTop = chatContainer.scrollHeight;
+                    updateCustomScrollbar();
                 } else {
                     console.error('Ошибка загрузки сообщений:', response.status);
                 }
@@ -229,42 +261,36 @@
                 console.error('Ошибка:', error);
             }
         }
-        
+
         async function sendMessage() {
             const inputField = document.getElementById('input-field');
             const chatContainer = document.getElementById('chat-container');
             const message = inputField.value.trim();
-            
+
             if (!message) return;
-        
-            // Добавляем сообщение пользователя в чат
+
             const userMessageDiv = document.createElement('div');
             userMessageDiv.className = 'message user-message';
             userMessageDiv.textContent = message;
             chatContainer.appendChild(userMessageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-        
-            // Очищаем поле ввода
             inputField.value = '';
-        
-            // Отправляем сообщение на сервер
+
             try {
                 const response = await fetch(`/api/chat/${chatId}/message`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: message })
                 });
-        
+
                 if (response.ok) {
                     const data = await response.json();
-                    // Добавляем ответ LLM в чат
                     const assistantMessageDiv = document.createElement('div');
                     assistantMessageDiv.className = 'message assistant-message';
                     assistantMessageDiv.textContent = data.content;
                     chatContainer.appendChild(assistantMessageDiv);
                     chatContainer.scrollTop = chatContainer.scrollHeight;
+                    updateCustomScrollbar();
                 } else {
                     console.error('Ошибка сервера:', response.status);
                 }
@@ -272,16 +298,69 @@
                 console.error('Ошибка:', error);
             }
         }
-        
+
         function toggleDeepSearch() {
             alert('DeepSearch пока не реализован');
         }
-        
+
         function toggleThink() {
             alert('Think пока не реализован');
         }
-        
-        // Инициализация чата при загрузке страницы
+
+        function setupCustomScrollbar() {
+            const chatContainer = document.getElementById('chat-container');
+            const customScrollbar = document.getElementById('custom-scrollbar');
+            const customScrollbarThumb = document.getElementById('custom-scrollbar-thumb');
+
+            function updateCustomScrollbar() {
+                const scrollHeight = chatContainer.scrollHeight;
+                const clientHeight = chatContainer.clientHeight;
+                if (scrollHeight <= clientHeight) {
+                    customScrollbar.style.display = 'none';
+                    return;
+                }
+                customScrollbar.style.display = 'block';
+
+                const thumbHeight = (clientHeight / scrollHeight) * customScrollbar.clientHeight;
+                customScrollbarThumb.style.height = `${thumbHeight}px`;
+
+                const scrollRatio = chatContainer.scrollTop / (scrollHeight - clientHeight);
+                const thumbPosition = scrollRatio * (customScrollbar.clientHeight - thumbHeight);
+                customScrollbarThumb.style.top = `${thumbPosition}px`;
+            }
+
+            window.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                chatContainer.scrollTop += e.deltaY;
+                updateCustomScrollbar();
+            }, { passive: false });
+
+            chatContainer.addEventListener('scroll', updateCustomScrollbar);
+
+            let isDragging = false;
+            customScrollbarThumb.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const rect = customScrollbar.getBoundingClientRect();
+                const thumbHeight = customScrollbarThumb.clientHeight;
+                let newTop = e.clientY - rect.top - thumbHeight / 2;
+                newTop = Math.max(0, Math.min(newTop, rect.height - thumbHeight));
+
+                const scrollRatio = newTop / (rect.height - thumbHeight);
+                chatContainer.scrollTop = scrollRatio * (chatContainer.scrollHeight - chatContainer.clientHeight);
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            updateCustomScrollbar();
+        }
+
         window.onload = initializeChat;
     </script>
 </body>
