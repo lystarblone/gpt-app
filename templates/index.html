@@ -124,13 +124,11 @@
         async function sendMessage() {
             const inputField = document.getElementById('input-field');
             const message = inputField.value.trim();
-            const inputContainer = document.getElementById('input-container');
             
             if (!message) return;
-
-            inputContainer.classList.add('hidden');
-
+        
             try {
+                // Создаем новый чат и сохраняем сообщение пользователя
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {
@@ -138,24 +136,23 @@
                     },
                     body: JSON.stringify({ content: message })
                 });
-
+        
                 if (response.ok) {
                     const data = await response.json();
-                    window.location.href = `/chat/${data.chat_id}`;
+                    // Мгновенно перенаправляем на страницу чата
+                    window.location.href = `/chat/${data.chat_id}?message=${encodeURIComponent(message)}`;
                 } else {
                     console.error('Ошибка сервера:', response.status);
-                    inputContainer.classList.remove('hidden');
                 }
             } catch (error) {
                 console.error('Ошибка:', error);
-                inputContainer.classList.remove('hidden');
             }
         }
-
+        
         function toggleDeepSearch() {
             alert('DeepSearch пока не реализован');
         }
-
+        
         function toggleThink() {
             alert('Think пока не реализован');
         }

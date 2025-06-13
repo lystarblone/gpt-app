@@ -6,7 +6,7 @@ from database import get_async_session, init_db
 from contextlib import asynccontextmanager
 from llm import get_conversation_chain
 from models import Chat, Message
-from schemas import MessageCreate, MessageResponse, ChatResponse
+from schemas import MessageCreate, MessageResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -26,32 +26,19 @@ async def index_page(request: Request):
 @app.post('/api/chat')
 async def create_chat(message: MessageCreate, db: AsyncSession = Depends(get_async_session)):
     try:
-        # Создание нового чата
+        # Создаем новый чат
         new_chat = Chat()
         db.add(new_chat)
         await db.commit()
         await db.refresh(new_chat)
 
-        # Сохранение сообщения пользователя
+        # Сохраняем сообщение пользователя
         user_message = Message(content=message.content, role="user", chat_id=new_chat.id)
         db.add(user_message)
         await db.commit()
         await db.refresh(user_message)
 
-        # Получение ответа от LLM
-        conversation = get_conversation_chain()
-        response = await conversation.ainvoke(
-            {"input": message.content},
-            config={"configurable": {"session_id": str(new_chat.id)}}
-        )
-
-        # Сохранение ответа LLM
-        llm_message = Message(content=response, role="assistant", chat_id=new_chat.id)
-        db.add(llm_message)
-        await db.commit()
-        await db.refresh(llm_message)
-
-        # Возвращаем только chat_id
+        # Возвращаем chat_id для перенаправления
         return {"chat_id": new_chat.id}
     except Exception as e:
         await db.rollback()
@@ -73,17 +60,20 @@ async def add_message(chat_id: int, message: MessageCreate, db: AsyncSession = D
         if not chat:
             raise HTTPException(status_code=404, detail="Чат не найден")
 
+        # Сохраняем сообщение пользователя
         user_message = Message(content=message.content, role="user", chat_id=chat_id)
         db.add(user_message)
         await db.commit()
         await db.refresh(user_message)
 
+        # Получаем ответ от LLM
         conversation = get_conversation_chain()
         response = await conversation.ainvoke(
             {"input": message.content},
             config={"configurable": {"session_id": str(chat_id)}}
         )
 
+        # Сохраняем ответ LLM
         llm_message = Message(content=response, role="assistant", chat_id=chat_id)
         db.add(llm_message)
         await db.commit()
