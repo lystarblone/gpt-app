@@ -15,6 +15,7 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            transition: all 0.3s ease;
         }
         .container {
             text-align: center;
@@ -34,6 +35,12 @@
             align-items: stretch;
             box-shadow: 0 0.2vw 0.4vw rgba(0, 0, 0, 0.3);
             border: 0.1vw solid #393b3d;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .input-container.hidden {
+            transform: translateY(100vh);
+            opacity: 0;
+            pointer-events: none;
         }
         #input-field {
             background: none;
@@ -99,7 +106,7 @@
 <body>
     <div class="container">
         <div class="logo">Grok</div>
-        <div class="input-container">
+        <div class="input-container" id="input-container">
             <input type="text" id="input-field" placeholder="Что ты хочешь узнать?" onkeypress="if(event.key === 'Enter') sendMessage()">
             <div class="buttons">
                 <div class="left-buttons">
@@ -117,8 +124,11 @@
         async function sendMessage() {
             const inputField = document.getElementById('input-field');
             const message = inputField.value.trim();
+            const inputContainer = document.getElementById('input-container');
             
             if (!message) return;
+
+            inputContainer.classList.add('hidden');
 
             try {
                 const response = await fetch('/api/chat', {
@@ -129,13 +139,16 @@
                     body: JSON.stringify({ content: message })
                 });
 
-                if (response.ok && response.redirected) {
-                    window.location.href = response.url;
+                if (response.ok) {
+                    const data = await response.json();
+                    window.location.href = `/chat/${data.chat_id}`;
                 } else {
                     console.error('Ошибка сервера:', response.status);
+                    inputContainer.classList.remove('hidden');
                 }
             } catch (error) {
                 console.error('Ошибка:', error);
+                inputContainer.classList.remove('hidden');
             }
         }
 

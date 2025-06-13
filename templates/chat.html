@@ -12,41 +12,48 @@
             margin: 0;
             padding: 0;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            justify-content: flex-start;
+            align-items: flex-start;
             min-height: 100vh;
+            padding: 1vh 1vw;
         }
         .container {
-            text-align: center;
+            text-align: left;
             width: 90vw;
             max-width: 60vw;
         }
         .logo {
-            font-size: 3.6vw;
-            margin-bottom: 4vh;
+            font-size: 1.5vw;
+            position: absolute;
+            top: 1vh;
+            left: 1vw;
+            margin: 0;
         }
         .chat-container {
             background-color: #242628;
             border-radius: 2vw;
             padding: 1vw;
-            margin-bottom: 2vh;
-            max-height: 60vh;
+            margin-top: 4vh;
+            max-height: 70vh;
             overflow-y: auto;
             border: 0.1vw solid #393b3d;
+            display: flex;
+            flex-direction: column;
         }
         .message {
             margin: 1vh 0;
             padding: 0.5vw;
             border-radius: 1vw;
             text-align: left;
+            max-width: 70%;
         }
         .user-message {
             background-color: #353739;
-            margin-left: 10%;
+            align-self: flex-end;
         }
         .assistant-message {
             background-color: #1c1e20;
-            margin-right: 10%;
+            align-self: flex-start;
         }
         .input-container {
             background-color: #242628;
@@ -57,6 +64,7 @@
             align-items: stretch;
             box-shadow: 0 0.2vw 0.4vw rgba(0, 0, 0, 0.3);
             border: 0.1vw solid #393b3d;
+            margin-top: 2vh;
         }
         #input-field {
             background: none;
@@ -140,7 +148,14 @@
         </div>
     </div>
     <script>
-        const chatId = {{ chat_id }};
+        const urlParams = new URLSearchParams(window.location.search);
+        const chatId = urlParams.get('chat_id') || (window.location.pathname.split('/').pop() || '').match(/\d+/)?.[0];
+
+        if (!chatId) {
+            console.error('Chat ID not found');
+            window.location.href = '/';
+            return;
+        }
 
         async function loadMessages() {
             const chatContainer = document.getElementById('chat-container');
