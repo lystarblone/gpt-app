@@ -183,63 +183,92 @@
         </div>
     </div>
     <script>
+        // Извлечение параметров URL и chatId
         const urlParams = new URLSearchParams(window.location.search);
         const initialMessage = urlParams.get('message');
         const chatId = window.location.pathname.split('/').pop() || '';
-        console.log('Init at:', new Date().toLocaleString('en-US', { timeZone: 'CET', hour12: true })); // 04:40 PM CEST, June 13, 2025
+        console.log('Инициализация чата:', new Date().toLocaleString('en-US', { timeZone: 'CET', hour12: true }));
 
+        // Инициализация чата
         async function initializeChat() {
+            console.log('Запуск initializeChat, chatId:', chatId, 'initialMessage:', initialMessage);
             const chatContainer = document.getElementById('chat-container');
             const inputField = document.getElementById('input-field');
 
+            // Проверка валидности chatId
             if (!chatId.match(/\d+/)) {
-                console.error('Недействительный ID чата');
+                console.error('Недействительный ID чата:', chatId);
                 window.location.href = '/';
                 return;
             }
 
-            // Управление placeholder
-            inputField.addEventListener('focus', () => {
-                if (inputField.value === '') inputField.placeholder = '';
-            });
-            inputField.addEventListener('blur', () => {
-                if (inputField.value === '') inputField.placeholder = 'Что ты хочешь узнать?';
-            });
-
+            // Отправка начального сообщения, если есть
             if (initialMessage) {
-                const userMessageDiv = document.createElement('div');
-                userMessageDiv.className = 'message user-message';
-                userMessageDiv.textContent = decodeURIComponent(initialMessage);
-                chatContainer.appendChild(userMessageDiv);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-
                 try {
-                    const response = await fetch(`/api/chat/${chatId}/message`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content: decodeURIComponent(initialMessage) })
-                    });
+                    const decodedMessage = decodeURIComponent(initialMessage);
+                    console.log('Отправка начального сообщения:', decodedMessage);
+                    await sendMessage(decodedMessage);
+                } catch (error) {
+                    console.error('Ошибка при отправке начального сообщения:', error);
+                }
+            }
 
-                    if (response.ok) {
-                        const data = await response.json();
+            // Загрузка сообщений и настройка скроллбара
+            await loadMessages();
+            setupCustomScrollbar();
+        }
+
+        // Отправка сообщения
+        async function sendMessage(message = document.getElementById('input-field').value.trim()) {
+            console.log('Отправка сообщения:', message, 'в чат:', chatId);
+            const chatContainer = document.getElementById('chat-container');
+            const inputField = document.getElementById('input-field');
+            if (!message) {
+                console.warn('Пустое сообщение, пропуск');
+                return;
+            }
+
+            // Отображение сообщения пользователя
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'message user-message';
+            userMessageDiv.textContent = message;
+            chatContainer.appendChild(userMessageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            inputField.value = '';
+
+            try {
+                console.log('Формирование запроса к:', `/api/chat/${chatId}/message`);
+                const response = await fetch(`/api/chat/${chatId}/message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: message })
+                });
+                console.log('Статус ответа:', response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Ответ сервера:', data);
+                    if (data && data.content) {
                         const assistantMessageDiv = document.createElement('div');
                         assistantMessageDiv.className = 'message assistant-message';
                         assistantMessageDiv.textContent = data.content;
                         chatContainer.appendChild(assistantMessageDiv);
                         chatContainer.scrollTop = chatContainer.scrollHeight;
+                        updateCustomScrollbar();
                     } else {
-                        console.error('Ошибка сервера:', response.status);
+                        console.warn('Ответ не содержит контента:', data);
                     }
-                } catch (error) {
-                    console.error('Ошибка:', error);
+                } else {
+                    console.error('Ошибка сервера:', response.status, await response.text());
                 }
+            } catch (error) {
+                console.error('Ошибка при отправке сообщения:', error);
             }
-
-            await loadMessages();
-            setupCustomScrollbar();
         }
 
+        // Загрузка сообщений чата
         async function loadMessages() {
+            console.log('Загрузка сообщений для чата:', chatId);
             const chatContainer = document.getElementById('chat-container');
             try {
                 const response = await fetch(`/api/chat/${chatId}/messages`);
@@ -255,59 +284,28 @@
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                     updateCustomScrollbar();
                 } else {
-                    console.error('Ошибка загрузки сообщений:', response.status);
+                    console.error('Ошибка загрузки сообщений:', response.status, await response.text());
                 }
             } catch (error) {
-                console.error('Ошибка:', error);
+                console.error('Ошибка при загрузке сообщений:', error);
             }
         }
 
-        async function sendMessage() {
-            const inputField = document.getElementById('input-field');
-            const chatContainer = document.getElementById('chat-container');
-            const message = inputField.value.trim();
-
-            if (!message) return;
-
-            const userMessageDiv = document.createElement('div');
-            userMessageDiv.className = 'message user-message';
-            userMessageDiv.textContent = message;
-            chatContainer.appendChild(userMessageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            inputField.value = '';
-
-            try {
-                const response = await fetch(`/api/chat/${chatId}/message`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: message })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const assistantMessageDiv = document.createElement('div');
-                    assistantMessageDiv.className = 'message assistant-message';
-                    assistantMessageDiv.textContent = data.content;
-                    chatContainer.appendChild(assistantMessageDiv);
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
-                    updateCustomScrollbar();
-                } else {
-                    console.error('Ошибка сервера:', response.status);
-                }
-            } catch (error) {
-                console.error('Ошибка:', error);
-            }
-        }
-
+        // Включение/выключение DeepSearch (заглушка)
         function toggleDeepSearch() {
+            console.log('DeepSearch нажат');
             alert('DeepSearch пока не реализован');
         }
 
+        // Включение/выключение Think (заглушка)
         function toggleThink() {
+            console.log('Think нажат');
             alert('Think пока не реализован');
         }
 
+        // Настройка кастомного скроллбара
         function setupCustomScrollbar() {
+            console.log('Настройка кастомного скроллбара');
             const chatContainer = document.getElementById('chat-container');
             const customScrollbar = document.getElementById('custom-scrollbar');
             const customScrollbarThumb = document.getElementById('custom-scrollbar-thumb');
@@ -361,6 +359,7 @@
             updateCustomScrollbar();
         }
 
+        // Запуск инициализации при загрузке страницы
         window.onload = initializeChat;
     </script>
 </body>

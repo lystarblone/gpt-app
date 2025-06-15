@@ -9,6 +9,10 @@ from models import Chat, Message
 from schemas import MessageCreate, MessageResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,19 +30,16 @@ async def index_page(request: Request):
 @app.post('/api/chat')
 async def create_chat(message: MessageCreate, db: AsyncSession = Depends(get_async_session)):
     try:
-        # Создаем новый чат
         new_chat = Chat()
         db.add(new_chat)
         await db.commit()
         await db.refresh(new_chat)
 
-        # Сохраняем сообщение пользователя
         user_message = Message(content=message.content, role="user", chat_id=new_chat.id)
         db.add(user_message)
         await db.commit()
         await db.refresh(user_message)
 
-        # Возвращаем chat_id для перенаправления
         return {"chat_id": new_chat.id}
     except Exception as e:
         await db.rollback()
@@ -55,26 +56,28 @@ async def chat_page(request: Request, chat_id: int, db: AsyncSession = Depends(g
 @app.post('/api/chat/{chat_id}/message', response_model=MessageResponse)
 async def add_message(chat_id: int, message: MessageCreate, db: AsyncSession = Depends(get_async_session)):
     try:
+        logger.info(f"Получен запрос на добавление сообщения в чат {chat_id}: {message.content}")
         result = await db.execute(select(Chat).filter(Chat.id == chat_id))
         chat = result.scalars().first()
         if not chat:
             raise HTTPException(status_code=404, detail="Чат не найден")
 
-        # Сохраняем сообщение пользователя
         user_message = Message(content=message.content, role="user", chat_id=chat_id)
         db.add(user_message)
         await db.commit()
         await db.refresh(user_message)
 
-        # Получаем ответ от LLM
         conversation = get_conversation_chain()
+        logger.info(f"Цепочка разговора создана, вызов ainvoke с: {message.content}")
         response = await conversation.ainvoke(
             {"input": message.content},
             config={"configurable": {"session_id": str(chat_id)}}
         )
+        logger.info(f"Сырой ответ от модели: {response}")
+        response_text = str(response) if hasattr(response, '__str__') else "Нет ответа от модели"
+        logger.info(f"Обработанный ответ: {response_text}")
 
-        # Сохраняем ответ LLM
-        llm_message = Message(content=response, role="assistant", chat_id=chat_id)
+        llm_message = Message(content=response_text, role="assistant", chat_id=chat_id)
         db.add(llm_message)
         await db.commit()
         await db.refresh(llm_message)
@@ -86,6 +89,7 @@ async def add_message(chat_id: int, message: MessageCreate, db: AsyncSession = D
         )
     except Exception as e:
         await db.rollback()
+        logger.error(f"Ошибка: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка добавления сообщения: {str(e)}")
 
 @app.get('/api/chat/{chat_id}/messages', response_model=List[MessageResponse])
