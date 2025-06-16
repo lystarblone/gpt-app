@@ -187,6 +187,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const initialMessage = urlParams.get('message');
         const chatId = window.location.pathname.split('/').pop() || '';
+        let isFirstMessage = true; // Флаг для отслеживания первого сообщения
         console.log('Инициализация чата:', new Date().toLocaleString('en-US', { timeZone: 'CET', hour12: true }));
 
         // Инициализация чата
@@ -202,8 +203,10 @@
                 return;
             }
 
-            // Отправка начального сообщения, если есть
-            if (initialMessage) {
+            // Загрузка сообщений только если нет начального сообщения
+            if (!initialMessage) {
+                await loadMessages();
+            } else {
                 try {
                     const decodedMessage = decodeURIComponent(initialMessage);
                     console.log('Отправка начального сообщения:', decodedMessage);
@@ -213,9 +216,25 @@
                 }
             }
 
-            // Загрузка сообщений и настройка скроллбара
-            await loadMessages();
+            // Настройка скроллбара
             setupCustomScrollbar();
+        }
+
+        // Проверка количества сообщений пользователя
+        async function getUserMessageCount() {
+            try {
+                const response = await fetch(`/api/chat/${chatId}/messages`);
+                if (response.ok) {
+                    const messages = await response.json();
+                    return messages.filter(msg => msg.role === 'user').length;
+                } else {
+                    console.error('Ошибка при получении сообщений:', response.status, await response.text());
+                    return 0;
+                }
+            } catch (error) {
+                console.error('Ошибка при проверке количества сообщений:', error);
+                return 0;
+            }
         }
 
         // Отправка сообщения
@@ -249,12 +268,19 @@
                     const data = await response.json();
                     console.log('Ответ сервера:', data);
                     if (data && data.content) {
-                        const assistantMessageDiv = document.createElement('div');
-                        assistantMessageDiv.className = 'message assistant-message';
-                        assistantMessageDiv.textContent = data.content;
-                        chatContainer.appendChild(assistantMessageDiv);
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
-                        updateCustomScrollbar();
+                        // Для первого сообщения добавляем только ответ модели
+                        if (isFirstMessage) {
+                            const assistantMessageDiv = document.createElement('div');
+                            assistantMessageDiv.className = 'message assistant-message';
+                            assistantMessageDiv.textContent = data.content;
+                            chatContainer.appendChild(assistantMessageDiv);
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                            updateCustomScrollbar();
+                            isFirstMessage = false; // Сбрасываем флаг после первого сообщения
+                        } else {
+                            // Для последующих сообщений загружаем все сообщения
+                            await loadMessages();
+                        }
                     } else {
                         console.warn('Ответ не содержит контента:', data);
                     }
