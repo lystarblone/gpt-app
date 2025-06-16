@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,11 +16,11 @@
             align-items: center;
             min-height: 100vh;
             transition: all 0.3s ease;
+            position: relative;
         }
         .container {
             text-align: center;
-            width: 90vw;
-            max-width: 60vw;
+            width: 50%;
         }
         .logo {
             font-size: 3.6vw;
@@ -28,7 +28,7 @@
         }
         .input-container {
             background-color: #242628;
-            border-radius: 2vw;
+            border-radius: 1.4vw;
             padding: 1vw;
             display: flex;
             flex-direction: column;
@@ -36,6 +36,7 @@
             box-shadow: 0 0.2vw 0.4vw rgba(0, 0, 0, 0.3);
             border: 0.1vw solid #393b3d;
             transition: transform 0.3s ease, opacity 0.3s ease;
+            height: 100px;
         }
         .input-container.hidden {
             transform: translateY(100vh);
@@ -46,42 +47,45 @@
             background: none;
             border: none;
             color: #fdfdfd;
-            font-size: 1.3vw;
+            font-size: 120%;
             width: 100%;
             outline: none;
-            padding: 1vw;
+            padding: 0.8vw;
             margin-bottom: 1vh;
-            margin-left: 0.5vw;
             text-align: left;
+        }
+        #input-field::placeholder {
+            font-size: 0.95vw;
+            color: #b5b5b5;
         }
         .buttons {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 1vw;
+            margin-top: 0.4vw;
         }
         .left-buttons {
             display: flex;
             gap: 1vw;
         }
-        .button {
+        .button, .right-button, .auth-button {
+            font-size: 0.85vw;
             background-color: #242628;
-            border: none;
+            border: 0.12vw solid #393b3d;
             border-radius: 2vw;
-            color: #fdfdfd;
+            color: #fcfcfc;
             cursor: pointer;
-            font-size: 1vw;
             padding: 0.5vw 1.5vw;
             display: flex;
             align-items: center;
             gap: 0.5vw;
-            border: 0.12vw solid #393b3d;
+            transition: background-color 0.3s ease;
         }
-        .button:hover {
+        .button:hover, .right-button:hover, .auth-button:hover {
             background-color: #353739;
         }
-        .button .icon {
-            font-size: 1.4vw;
+        .button .icon, .right-button .icon {
+            font-size: 1%;
         }
         .right-buttons {
             display: flex;
@@ -90,28 +94,46 @@
         }
         .right-button {
             background: none;
-            border: none;
-            color: #888;
-            cursor: pointer;
-            font-size: 1vw;
-            display: flex;
-            align-items: center;
-            gap: 0.3vw;
         }
-        .right-button:hover {
-            color: #ccc;
+        .auth-buttons {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 1vw;
+            z-index: 10;
+        }
+        .image-container {
+            position: absolute;
+            top: 10px;
+            left: 20px; /* Смещение вправо от правого края, чтобы не перекрывать auth-buttons */
+            z-index: 10;
+        }
+        .image-container img {
+            max-width: 50px; /* Ограничение размера изображения */
+            height: auto;
+            border-radius: 10px; /* Опционально, для закругления углов */
         }
     </style>
 </head>
 <body>
+    <div class="auth-buttons">
+        <button class="auth-button" onclick="register()">Регистрация</button>
+        <button class="auth-button" onclick="login()">Войти</button>
+    </div>
+    <div class="image-container">
+        <a href="/">
+            <img src="{{ url_for('static', path='img/logo.png') }}" alt="Logo">
+        </a>
+    </div>
     <div class="container">
         <div class="logo">Grok</div>
         <div class="input-container" id="input-container">
             <input type="text" id="input-field" placeholder="Что ты хочешь узнать?" onkeypress="if(event.key === 'Enter') sendMessage()" autocomplete="off">
             <div class="buttons">
                 <div class="left-buttons">
-                    <button class="button" onclick="toggleDeepSearch()"><span class="icon">🔍</span> DeepSearch</button>
-                    <button class="button think" onclick="toggleThink()"><span class="icon">💭</span> Think</button>
+                    <button class="button" onclick="toggleDeepSearch()">DeepSearch</button>
+                    <button class="button think" onclick="toggleThink()">Think</button>
                 </div>
                 <div class="right-buttons">
                     <button class="right-button">Grok 3 <span class="icon">⚙️</span></button>
@@ -128,7 +150,6 @@
             if (!message) return;
         
             try {
-                // Создаем новый чат и сохраняем сообщение пользователя
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {
@@ -139,7 +160,6 @@
         
                 if (response.ok) {
                     const data = await response.json();
-                    // Мгновенно перенаправляем на страницу чата
                     window.location.href = `/chat/${data.chat_id}?message=${encodeURIComponent(message)}`;
                 } else {
                     console.error('Ошибка сервера:', response.status);
@@ -155,6 +175,14 @@
         
         function toggleThink() {
             alert('Think пока не реализован');
+        }
+
+        function register() {
+            alert('Регистрация пока не реализована');
+        }
+
+        function login() {
+            alert('Вход пока не реализован');
         }
     </script>
 </body>

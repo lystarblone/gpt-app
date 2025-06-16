@@ -2,6 +2,7 @@ from typing import List
 from fastapi import Depends, FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from database import get_async_session, init_db
 from contextlib import asynccontextmanager
 from llm import get_conversation_chain
@@ -20,6 +21,9 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+# Настройка статических файлов
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="templates")
 
