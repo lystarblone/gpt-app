@@ -11,6 +11,7 @@ from schemas import MessageCreate, MessageResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import logging
+from llm import clean_response
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -93,7 +94,9 @@ async def add_message(chat_id: int, message: MessageCreate, db: AsyncSession = D
             config={"configurable": {"session_id": str(chat_id)}}
         )
         logger.info(f"Сырой ответ от модели: {response}")
-        response_text = str(response) if hasattr(response, '__str__') else "Нет ответа от модели"
+        
+        # Очищаем ответ с помощью clean_response
+        response_text = clean_response(response)
         logger.info(f"Обработанный ответ: {response_text}")
 
         llm_message = Message(content=response_text, role="assistant", chat_id=chat_id)
