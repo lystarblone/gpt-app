@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Grok Interface{% endblock %}</title>
+    <style>
+        body {
+            background-color: #151618;
+            color: #fdfdfd;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .container {
+            text-align: center;
+            width: 50%;
+        }
+        .logo {
+            font-size: 3.6vw;
+            margin-bottom: 4vh;
+        }
+        .input-container {
+            background-color: #242628;
+            border-radius: 1.4vw;
+            padding: 1vw;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            box-shadow: 0 0.2vw 0.4vw rgba(0, 0, 0, 0.3);
+            border: 0.1vw solid #393b3d;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            height: 100px;
+        }
+        .input-container.hidden {
+            transform: translateY(100vh);
+            opacity: 0;
+            pointer-events: none;
+        }
+        #input-field {
+            background: none;
+            border: none;
+            color: #fdfdfd;
+            font-size: 120%;
+            width: 100%;
+            outline: none;
+            padding: 0.8vw;
+            margin-bottom: 1vh;
+            text-align: left;
+        }
+        #input-field::placeholder {
+            font-size: 0.95vw;
+            color: #b5b5b5;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.4vw;
+        }
+        .left-buttons {
+            display: flex;
+            gap: 1vw;
+        }
+        .button, .right-button, .auth-button {
+            font-size: 0.85vw;
+            background-color: #242628;
+            border: 0.12vw solid #393b3d;
+            border-radius: 2vw;
+            color: #fcfcfc;
+            cursor: pointer;
+            padding: 0.5vw 1.5vw;
+            display: flex;
+            align-items: center;
+            gap: 0.5vw;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover, .right-button:hover, .auth-button:hover {
+            background-color: #353739;
+        }
+        .button .icon, .right-button .icon {
+            font-size: 1%;
+        }
+        .right-buttons {
+            display: flex;
+            align-items: center;
+            gap: 0.5vw;
+        }
+        .right-button {
+            background: none;
+        }
+        .auth-buttons {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 1vw;
+            z-index: 10;
+            right: 30px;
+        }
+        .image-container {
+            position: absolute;
+            top: 10px;
+            left: 20px; /* Смещение вправо от правого края, чтобы не перекрывать auth-buttons */
+            z-index: 10;
+        }
+        .image-container img {
+            max-width: 50px;
+            height: auto;
+            border-radius: 10px;
+        }
+        {% block styles %}{% endblock %}
+    </style>
+</head>
+<body>
+
+<!-- Кнопки авторизации -->
+{% if show_auth_buttons == 'true' %}
+<div class="auth-buttons">
+    <button class="auth-button" onclick="register()">Регистрация</button>
+    <button class="auth-button" onclick="login()">Войти</button>
+</div>
+{% endif %}
+
+<!-- Основной контейнер -->
+<div class="container">
+    {% block content %}
+    {% endblock %}
+
+    {% if show_search_block == 'true' %}
+    <div class="logo">Grok</div>
+    <div class="input-container" id="input-container">
+        <input type="text" id="input-field" placeholder="Что ты хочешь узнать?" onkeypress="if(event.key === 'Enter') sendMessage()" autocomplete="off">
+        <div class="buttons">
+            <div class="left-buttons">
+                <button class="button" onclick="toggleDeepSearch()">DeepSearch</button>
+                <button class="button think" onclick="toggleThink()">Think</button>
+            </div>
+            <div class="right-buttons">
+                <button class="right-button">Grok 3 <span class="icon">⚙️</span></button>
+                <button class="right-button"><span class="icon">⬇️</span></button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Скрипты -->
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

@@ -29,7 +29,14 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get('/', response_class=HTMLResponse)
 async def index_page(request: Request):
-    return templates.TemplateResponse('index.html', {'request': request})
+    return templates.TemplateResponse(
+        'index.html',
+        {
+            'request': request,
+            'show_auth_buttons': 'true',
+            'show_search_block': 'true'
+        }
+    )
 
 @app.post('/api/chat')
 async def create_chat(message: MessageCreate, db: AsyncSession = Depends(get_async_session)):
@@ -55,7 +62,15 @@ async def chat_page(request: Request, chat_id: int, db: AsyncSession = Depends(g
     chat = result.scalars().first()
     if not chat:
         return templates.TemplateResponse('error.html', {'request': request, 'message': 'Чат не найден'}, status_code=404)
-    return templates.TemplateResponse('chat.html', {'request': request, 'chat_id': chat_id})
+    return templates.TemplateResponse(
+        'chat.html',
+        {
+            'request': request,
+            'chat_id': chat_id,
+            'show_auth_buttons': 'true',
+            'show_search_block': 'true'
+        }
+    )
 
 @app.post('/api/chat/{chat_id}/message', response_model=MessageResponse)
 async def add_message(chat_id: int, message: MessageCreate, db: AsyncSession = Depends(get_async_session)):

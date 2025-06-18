@@ -1,189 +1,49 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grok Interface</title>
-    <style>
-        body {
-            background-color: #151618;
-            color: #fdfdfd;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-        .container {
-            text-align: center;
-            width: 50%;
-        }
-        .logo {
-            font-size: 3.6vw;
-            margin-bottom: 4vh;
-        }
-        .input-container {
-            background-color: #242628;
-            border-radius: 1.4vw;
-            padding: 1vw;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            box-shadow: 0 0.2vw 0.4vw rgba(0, 0, 0, 0.3);
-            border: 0.1vw solid #393b3d;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-            height: 100px;
-        }
-        .input-container.hidden {
-            transform: translateY(100vh);
-            opacity: 0;
-            pointer-events: none;
-        }
-        #input-field {
-            background: none;
-            border: none;
-            color: #fdfdfd;
-            font-size: 120%;
-            width: 100%;
-            outline: none;
-            padding: 0.8vw;
-            margin-bottom: 1vh;
-            text-align: left;
-        }
-        #input-field::placeholder {
-            font-size: 0.95vw;
-            color: #b5b5b5;
-        }
-        .buttons {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 0.4vw;
-        }
-        .left-buttons {
-            display: flex;
-            gap: 1vw;
-        }
-        .button, .right-button, .auth-button {
-            font-size: 0.85vw;
-            background-color: #242628;
-            border: 0.12vw solid #393b3d;
-            border-radius: 2vw;
-            color: #fcfcfc;
-            cursor: pointer;
-            padding: 0.5vw 1.5vw;
-            display: flex;
-            align-items: center;
-            gap: 0.5vw;
-            transition: background-color 0.3s ease;
-        }
-        .button:hover, .right-button:hover, .auth-button:hover {
-            background-color: #353739;
-        }
-        .button .icon, .right-button .icon {
-            font-size: 1%;
-        }
-        .right-buttons {
-            display: flex;
-            align-items: center;
-            gap: 0.5vw;
-        }
-        .right-button {
-            background: none;
-        }
-        .auth-buttons {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            display: flex;
-            gap: 1vw;
-            z-index: 10;
-        }
-        .image-container {
-            position: absolute;
-            top: 10px;
-            left: 20px; /* Смещение вправо от правого края, чтобы не перекрывать auth-buttons */
-            z-index: 10;
-        }
-        .image-container img {
-            max-width: 50px; /* Ограничение размера изображения */
-            height: auto;
-            border-radius: 10px; /* Опционально, для закругления углов */
-        }
-    </style>
-</head>
-<body>
-    <div class="auth-buttons">
-        <button class="auth-button" onclick="register()">Регистрация</button>
-        <button class="auth-button" onclick="login()">Войти</button>
-    </div>
-    <div class="image-container">
-        <a href="/">
-            <img src="{{ url_for('static', path='img/logo.png') }}" alt="Logo">
-        </a>
-    </div>
-    <div class="container">
-        <div class="logo">Grok</div>
-        <div class="input-container" id="input-container">
-            <input type="text" id="input-field" placeholder="Что ты хочешь узнать?" onkeypress="if(event.key === 'Enter') sendMessage()" autocomplete="off">
-            <div class="buttons">
-                <div class="left-buttons">
-                    <button class="button" onclick="toggleDeepSearch()">DeepSearch</button>
-                    <button class="button think" onclick="toggleThink()">Think</button>
-                </div>
-                <div class="right-buttons">
-                    <button class="right-button">Grok 3 <span class="icon">⚙️</span></button>
-                    <button class="right-button"><span class="icon">⬇️</span></button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <script>
-        async function sendMessage() {
-            const inputField = document.getElementById('input-field');
-            const message = inputField.value.trim();
-            
-            if (!message) return;
+{% extends "base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block styles %}{% endblock %}
+
+{% block content %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function sendMessage() {
+        const inputField = document.getElementById('input-field');
+        const message = inputField.value.trim();
         
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ content: message })
-                });
-        
-                if (response.ok) {
-                    const data = await response.json();
-                    window.location.href = `/chat/${data.chat_id}?message=${encodeURIComponent(message)}`;
-                } else {
-                    console.error('Ошибка сервера:', response.status);
-                }
-            } catch (error) {
-                console.error('Ошибка:', error);
+        if (!message) return;
+    
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: message })
+            });
+    
+            if (response.ok) {
+                const data = await response.json();
+                window.location.href = `/chat/${data.chat_id}?message=${encodeURIComponent(message)}`;
+            } else {
+                console.error('Ошибка сервера:', response.status);
             }
+        } catch (error) {
+            console.error('Ошибка:', error);
         }
-        
-        function toggleDeepSearch() {
-            alert('DeepSearch пока не реализован');
-        }
-        
-        function toggleThink() {
-            alert('Think пока не реализован');
-        }
+    }
+</script>
+{% endblock %}
 
-        function register() {
-            alert('Регистрация пока не реализована');
-        }
 
-        function login() {
-            alert('Вход пока не реализован');
-        }
-    </script>
-</body>
-</html>
+
+<!--
+<div class="image-container">
+    <a href="/">
+        <img src="{{ url_for('static', path='img/logo.png') }}" alt="Logo">
+    </a>
+</div>
+-->
