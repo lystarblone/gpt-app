@@ -10,6 +10,7 @@
         min-height: 100vh;
         transition: all 0.3s ease;
         position: relative;
+        margin: 0;
     }
     .container {
         margin: 0 auto;
@@ -18,6 +19,7 @@
         min-height: 100vh;
         width: 50%;
         text-align: center;
+        box-sizing: border-box;
     }
     .logo {
         font-size: 1.5vw;
@@ -30,12 +32,15 @@
         padding: 1vw;
         display: flex;
         flex-direction: column;
-        width: 100%;
-        height: calc(100vh - 12vh);
+        width: 50%; /* Синхронизировано с .input-container */
+        height: calc(100vh - 150px - 2vw - 20px); /* Учтена высота input-container и отступ */
         overflow-y: auto;
         box-sizing: border-box;
-        max-height: 75vh;
-        margin-top: 1vw;
+        max-height: calc(100vh - 150px - 2vw - 20px);
+        position: fixed; /* Фиксируем для соответствия .input-container */
+        top: 0; /* Начинаем с верха */
+        left: 50%;
+        transform: translateX(-50%); /* Центрируем */
         scrollbar-width: none;
         -ms-overflow-style: none;
     }
@@ -59,17 +64,23 @@
     .input-container {
         background-color: #242628;
         border-radius: 1.4vw;
-        padding: 1vw;
         display: flex;
         flex-direction: column;
         align-items: stretch;
         box-shadow: 0 0.2vw 0.4vw rgba(0, 0, 0, 0.3);
         border: 0.1vw solid #393b3d;
         transition: transform 0.3s ease, opacity 0.3s ease;
-        height: 100px;
+        height: 9vw;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 50%; /* Синхронизировано */
+        box-sizing: border-box;
+        z-index: 10;
     }
     .input-container.hidden {
-        transform: translateY(100vh);
+        transform: translateX(-50%) translateY(100vh);
         opacity: 0;
         pointer-events: none;
     }
@@ -78,15 +89,18 @@
         border: none;
         width: 100%;
         outline: none;
-        padding: 0.8vw;
-        margin-bottom: 1vh;
+        padding: 1vw;
+        margin-bottom: 1.5vh;
         text-align: left;
+        font-size: 1.1em;
+        resize: none;
+        overflow-y: auto;
     }
     .custom-scrollbar {
         position: fixed;
         right: 0.5vw;
         top: 1vh;
-        height: calc(100vh - 14vh);
+        height: calc(100vh - 150px - 2vw - 20px);
         width: 0.8vw;
         background-color: #242628;
         border-radius: 0.4vw;
@@ -124,7 +138,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const initialMessage = urlParams.get('message');
     const chatId = window.location.pathname.split('/').pop() || '';
-    let isFirstMessage = true; // Флаг для отслеживания первого сообщения
+    let isFirstMessage = true;
     console.log('Инициализация чата:', new Date().toLocaleString('en-US', { timeZone: 'CET', hour12: true }));
 
     // Инициализация чата
@@ -133,14 +147,12 @@
         const chatContainer = document.getElementById('chat-container');
         const inputField = document.getElementById('input-field');
 
-        // Проверка валидности chatId
         if (!chatId.match(/\d+/)) {
             console.error('Недействительный ID чата:', chatId);
             window.location.href = '/';
             return;
         }
 
-        // Загрузка сообщений только если нет начального сообщения
         if (!initialMessage) {
             await loadMessages();
         } else {
@@ -153,7 +165,6 @@
             }
         }
 
-        // Настройка скроллбара
         setupCustomScrollbar();
     }
 
@@ -184,7 +195,6 @@
             return;
         }
 
-        // Отображение сообщения пользователя
         const userMessageDiv = document.createElement('div');
         userMessageDiv.className = 'message user-message';
         userMessageDiv.textContent = message;
@@ -205,7 +215,6 @@
                 const data = await response.json();
                 console.log('Ответ сервера:', data);
                 if (data && data.content) {
-                    // Для первого сообщения добавляем только ответ модели
                     if (isFirstMessage) {
                         const assistantMessageDiv = document.createElement('div');
                         assistantMessageDiv.className = 'message assistant-message';
@@ -213,9 +222,8 @@
                         chatContainer.appendChild(assistantMessageDiv);
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                         updateCustomScrollbar();
-                        isFirstMessage = false; // Сбрасываем флаг после первого сообщения
+                        isFirstMessage = false;
                     } else {
-                        // Для последующих сообщений загружаем все сообщения
                         await loadMessages();
                     }
                 } else {
@@ -322,7 +330,6 @@
         updateCustomScrollbar();
     }
 
-    // Запуск инициализации при загрузке страницы
     window.onload = initializeChat;
 </script>
 {% endblock %}
