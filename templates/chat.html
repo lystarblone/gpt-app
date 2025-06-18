@@ -138,7 +138,6 @@
     const urlParams = new URLSearchParams(window.location.search);
     const initialMessage = urlParams.get('message');
     const chatId = window.location.pathname.split('/').pop() || '';
-    let isFirstMessage = true;
     console.log('Инициализация чата:', new Date().toLocaleString('en-US', { timeZone: 'CET', hour12: true }));
 
     // Инициализация чата
@@ -153,13 +152,20 @@
             return;
         }
 
-        if (!initialMessage) {
-            await loadMessages();
-        } else {
+        // Загружаем сообщения из базы данных в любом случае
+        await loadMessages();
+
+        // Проверяем, было ли начальное сообщение уже отправлено
+        const sentInitialMessageKey = `sentInitialMessage_${chatId}`;
+        const isInitialMessageSent = localStorage.getItem(sentInitialMessageKey);
+
+        if (initialMessage && !isInitialMessageSent) {
             try {
                 const decodedMessage = decodeURIComponent(initialMessage);
                 console.log('Отправка начального сообщения:', decodedMessage);
                 await sendMessage(decodedMessage);
+                // Помечаем, что начальное сообщение отправлено
+                localStorage.setItem(sentInitialMessageKey, 'true');
             } catch (error) {
                 console.error('Ошибка при отправке начального сообщения:', error);
             }
@@ -195,6 +201,7 @@
             return;
         }
 
+        // Добавляем сообщение пользователя в интерфейс
         const userMessageDiv = document.createElement('div');
         userMessageDiv.className = 'message user-message';
         userMessageDiv.textContent = message;
@@ -212,23 +219,8 @@
             console.log('Статус ответа:', response.status);
 
             if (response.ok) {
-                const data = await response.json();
-                console.log('Ответ сервера:', data);
-                if (data && data.content) {
-                    if (isFirstMessage) {
-                        const assistantMessageDiv = document.createElement('div');
-                        assistantMessageDiv.className = 'message assistant-message';
-                        assistantMessageDiv.textContent = data.content;
-                        chatContainer.appendChild(assistantMessageDiv);
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
-                        updateCustomScrollbar();
-                        isFirstMessage = false;
-                    } else {
-                        await loadMessages();
-                    }
-                } else {
-                    console.warn('Ответ не содержит контента:', data);
-                }
+                // После отправки сообщения перезагружаем все сообщения из базы данных
+                await loadMessages();
             } else {
                 console.error('Ошибка сервера:', response.status, await response.text());
             }
