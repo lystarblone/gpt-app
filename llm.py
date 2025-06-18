@@ -9,7 +9,6 @@ import torch
 import time
 from collections import defaultdict
 
-# Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -17,16 +16,15 @@ def get_llm():
     logger.info("Начало загрузки модели...")
     try:
         model_name = "Qwen/Qwen2-1.5B-Instruct"
-        # Проверяем доступность MPS (GPU M1)
         device = "mps" if torch.backends.mps.is_available() else "cpu"
         logger.info(f"Используемое устройство: {device}")
         
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
-            torch_dtype=torch.float16,  # Экономия памяти
-            low_cpu_mem_usage=True,  # Оптимизация памяти
-            trust_remote_code=True  # Требуется для Qwen
-        ).to(device)  # Перемещаем модель на MPS или CPU
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True,
+            trust_remote_code=True
+        ).to(device)
         logger.info("Модель загружена успешно")
         
         tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -36,11 +34,12 @@ def get_llm():
             task="text-generation",
             model=model,
             tokenizer=tokenizer,
-            max_new_tokens=64,  # Уменьшено для ускорения
-            do_sample=False,  # Greedy decoding для скорости
+            max_new_tokens=256,
+            do_sample=False,
             repetition_penalty=1.1,
             pad_token_id=tokenizer.eos_token_id,
-            device=device  # Используем MPS или CPU
+            device=device,
+            return_full_text=False
         )
         logger.info("Пайплайн создан")
         return HuggingFacePipeline(pipeline=hf_pipeline)
@@ -54,7 +53,7 @@ def get_conversation_chain():
         llm = get_llm()
         logger.info("LLM получен, создание промпта...")
         prompt = ChatPromptTemplate.from_messages([
-            ("system", """Ты — Grok, ИИ-ассистент, созданный xAI. Твоя задача — давать точные, краткие и полезные ответы на русском языке. Если в запросе есть некорректные данные, укажи ошибки и предоставь правильную информацию. Проверяй факты и избегай выдумок."""),
+            ("system", """Ты — Grok, ИИ-ассистент, созданный xAI. Отвечай только на вопрос пользователя, без повторения запроса или системного промпта. Давай точные, краткие и полезные ответы на русском языке. Если в запросе есть некорректные данные, четко укажи все ошибки и предоставь правильную информацию, основываясь на исторических фактах. Проверяй факты и избегай выдумок."""),
             MessagesPlaceholder(variable_name="history"),
             ("human", "{input}")
         ])
@@ -82,16 +81,27 @@ def get_conversation_chain():
         raise
 
 def clean_response(response):
-    """Очистка ответа от системного промпта и лишнего текста."""
-    if "System:" in response:
-        response = response.split("Human:")[1] if "Human:" in response else response
-    return response.strip()
+    """Очистка ответа от системного промпта, меток и лишнего текста."""
+    if not isinstance(response, str):
+        response = str(response)
+    
+    markers = ["System:", "Human:", "Assistant:"]
+    cleaned_response = response
+    for marker in markers:
+        if marker in cleaned_response:
+            parts = cleaned_response.split(marker)
+            cleaned_response = parts[-1]
+    
+    cleaned_response = cleaned_response.strip()
+    
+    if "Проверь следующий текст" in cleaned_response:
+        cleaned_response = cleaned_response.split("Проверь следующий текст")[-1].strip()
+    
+    return cleaned_response
 
 if __name__ == "__main__":
     try:
-        # Проверяем доступность MPS
         logger.info(f"MPS доступен: {torch.backends.mps.is_available()}")
-        
         chain = get_conversation_chain()
         start_time = time.time()
         response = chain.invoke(

@@ -94,9 +94,7 @@ async def add_message(chat_id: int, message: MessageCreate, db: AsyncSession = D
             config={"configurable": {"session_id": str(chat_id)}}
         )
         logger.info(f"Сырой ответ от модели: {response}")
-        
-        # Очищаем ответ с помощью clean_response
-        response_text = clean_response(response)
+        response_text = clean_response(response)  # Используем обновленную функцию
         logger.info(f"Обработанный ответ: {response_text}")
 
         llm_message = Message(content=response_text, role="assistant", chat_id=chat_id)
