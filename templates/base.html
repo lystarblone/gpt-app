@@ -123,8 +123,8 @@
 <!-- Кнопки авторизации -->
 {% if show_auth_buttons == 'true' %}
 <div class="auth-buttons">
-    <button class="auth-button" onclick="register()">Регистрация</button>
-    <button class="auth-button" onclick="login()">Войти</button>
+    <button class="auth-button" onclick="window.location.href='/register'">Регистрация</button>
+    <button class="auth-button" onclick="window.location.href='/login'">Войти</button>
 </div>
 {% endif %}
 

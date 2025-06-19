@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import Depends, FastAPI, Request, HTTPException, BackgroundTasks
+from fastapi import Depends, FastAPI, Request, HTTPException, BackgroundTasks, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -37,6 +37,46 @@ async def index_page(request: Request):
         }
     )
 
+@app.get('/login', response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse(
+        'login.html',
+        {'request': request}
+    )
+
+@app.post('/login')
+async def login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    remember: bool = Form(False),
+    db: AsyncSession = Depends(get_async_session)
+):
+    # Здесь должна быть логика авторизации (проверка в базе данных)
+    logger.info(f"Попытка входа: {username}, remember: {remember}")
+    # Простое перенаправление для примера
+    return RedirectResponse(url='/', status_code=303)
+
+@app.get('/register', response_class=HTMLResponse)
+async def register_page(request: Request):
+    return templates.TemplateResponse(
+        'register.html',
+        {'request': request}
+    )
+
+@app.post('/register')
+async def register(
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    db: AsyncSession = Depends(get_async_session)
+):
+    # Здесь должна быть логика регистрации (сохранение в базе данных)
+    logger.info(f"Попытка регистрации: {username}, {email}")
+    # Простое перенаправление для примера
+    return RedirectResponse(url='/login', status_code=303)
+
 @app.post('/api/chat')
 async def create_chat(
     message: MessageCreate,
@@ -45,21 +85,18 @@ async def create_chat(
 ):
     try:
         logger.info("Создание нового чата")
-        # Создаём новый чат
         new_chat = Chat()
         db.add(new_chat)
         await db.commit()
         await db.refresh(new_chat)
         logger.info(f"Чат создан, ID: {new_chat.id}")
 
-        # Сохраняем сообщение пользователя
         user_message = Message(content=message.content, role="user", chat_id=new_chat.id)
         db.add(user_message)
         await db.commit()
         await db.refresh(user_message)
         logger.info(f"Сообщение пользователя сохранено: {message.content}")
 
-        # Планируем обработку модели в фоновой задаче
         async def process_model_response(chat_id: int, content: str):
             try:
                 conversation = get_conversation_chain()
@@ -72,7 +109,6 @@ async def create_chat(
                 response_text = clean_response(response)
                 logger.info(f"Обработанный ответ: {response_text}")
 
-                # Сохраняем ответ модели
                 llm_message = Message(content=response_text, role="assistant", chat_id=chat_id)
                 db.add(llm_message)
                 await db.commit()
@@ -88,10 +124,8 @@ async def create_chat(
                 db.add(error_message)
                 await db.commit()
 
-        # Добавляем задачу в фоновый пул
         background_tasks.add_task(process_model_response, new_chat.id, message.content)
 
-        # Моментально возвращаем ID чата
         return {"chat_id": new_chat.id}
     except Exception as e:
         await db.rollback()
