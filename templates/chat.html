@@ -4,6 +4,7 @@
 
 {% block styles %}
 <style>
+    /* Стили остаются без изменений */
     body {            
         justify-content: center;
         align-items: center;
@@ -32,15 +33,15 @@
         padding: 1vw;
         display: flex;
         flex-direction: column;
-        width: 50%; /* Синхронизировано с .input-container */
-        height: calc(100vh - 150px - 2vw - 20px); /* Учтена высота input-container и отступ */
+        width: 50%;
+        height: calc(100vh - 150px - 2vw - 20px);
         overflow-y: auto;
         box-sizing: border-box;
         max-height: calc(100vh - 150px - 2vw - 20px);
-        position: fixed; /* Фиксируем для соответствия .input-container */
-        top: 0; /* Начинаем с верха */
+        position: fixed;
+        top: 0;
         left: 50%;
-        transform: translateX(-50%); /* Центрируем */
+        transform: translateX(-50%);
         scrollbar-width: none;
         -ms-overflow-style: none;
     }
@@ -61,6 +62,11 @@
     .assistant-message {
         align-self: flex-start;
     }
+    .loading-message {
+        align-self: flex-start;
+        color: #888;
+        font-style: italic;
+    }
     .input-container {
         background-color: #242628;
         border-radius: 1.4vw;
@@ -75,7 +81,7 @@
         bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
-        width: 50%; /* Синхронизировано */
+        width: 50%;
         box-sizing: border-box;
         z-index: 10;
     }
@@ -134,64 +140,58 @@
 
 {% block scripts %}
 <script>
-    // Извлечение параметров URL и chatId
     const urlParams = new URLSearchParams(window.location.search);
     const initialMessage = urlParams.get('message');
     const chatId = window.location.pathname.split('/').pop() || '';
     console.log('Инициализация чата:', new Date().toLocaleString('en-US', { timeZone: 'CET', hour12: true }));
+    let pollingInterval = null;
 
-    // Инициализация чата
     async function initializeChat() {
         console.log('Запуск initializeChat, chatId:', chatId, 'initialMessage:', initialMessage);
-        const chatContainer = document.getElementById('chat-container');
-        const inputField = document.getElementById('input-field');
-
         if (!chatId.match(/\d+/)) {
             console.error('Недействительный ID чата:', chatId);
             window.location.href = '/';
             return;
         }
 
-        // Загружаем сообщения из базы данных в любом случае
+        // Отображаем сообщение пользователя и индикатор загрузки
+        const chatContainer = document.getElementById('chat-container');
+        if (initialMessage) {
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'message user-message';
+            userMessageDiv.textContent = initialMessage;
+            chatContainer.appendChild(userMessageDiv);
+
+            // Добавляем индикатор загрузки
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message loading-message';
+            loadingDiv.id = 'loading-message';
+            loadingDiv.textContent = 'Модель думает...';
+            chatContainer.appendChild(loadingDiv);
+
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
         await loadMessages();
-
-        // Проверяем, было ли начальное сообщение уже отправлено
-        const sentInitialMessageKey = `sentInitialMessage_${chatId}`;
-        const isInitialMessageSent = localStorage.getItem(sentInitialMessageKey);
-
-        if (initialMessage && !isInitialMessageSent) {
-            try {
-                const decodedMessage = decodeURIComponent(initialMessage);
-                console.log('Отправка начального сообщения:', decodedMessage);
-                await sendMessage(decodedMessage);
-                // Помечаем, что начальное сообщение отправлено
-                localStorage.setItem(sentInitialMessageKey, 'true');
-            } catch (error) {
-                console.error('Ошибка при отправке начального сообщения:', error);
-            }
-        }
-
         setupCustomScrollbar();
+        startPolling();
     }
 
-    // Проверка количества сообщений пользователя
-    async function getUserMessageCount() {
-        try {
-            const response = await fetch(`/api/chat/${chatId}/messages`);
-            if (response.ok) {
-                const messages = await response.json();
-                return messages.filter(msg => msg.role === 'user').length;
-            } else {
-                console.error('Ошибка при получении сообщений:', response.status, await response.text());
-                return 0;
-            }
-        } catch (error) {
-            console.error('Ошибка при проверке количества сообщений:', error);
-            return 0;
+    function startPolling() {
+        if (pollingInterval) clearInterval(pollingInterval);
+        pollingInterval = setInterval(async () => {
+            console.log('Проверка новых сообщений для чата:', chatId);
+            await loadMessages();
+        }, 1000); // Уменьшили интервал до 1 секунды для быстрого подхвата ответа
+    }
+
+    function stopPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
         }
     }
 
-    // Отправка сообщения
     async function sendMessage(message = document.getElementById('input-field').value.trim()) {
         console.log('Отправка сообщения:', message, 'в чат:', chatId);
         const chatContainer = document.getElementById('chat-container');
@@ -201,11 +201,19 @@
             return;
         }
 
-        // Добавляем сообщение пользователя в интерфейс
+        // Добавляем сообщение пользователя
         const userMessageDiv = document.createElement('div');
         userMessageDiv.className = 'message user-message';
         userMessageDiv.textContent = message;
         chatContainer.appendChild(userMessageDiv);
+
+        // Добавляем индикатор загрузки
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'message loading-message';
+        loadingDiv.id = 'loading-message';
+        loadingDiv.textContent = 'Модель думает...';
+        chatContainer.appendChild(loadingDiv);
+
         chatContainer.scrollTop = chatContainer.scrollHeight;
         inputField.value = '';
 
@@ -219,7 +227,6 @@
             console.log('Статус ответа:', response.status);
 
             if (response.ok) {
-                // После отправки сообщения перезагружаем все сообщения из базы данных
                 await loadMessages();
             } else {
                 console.error('Ошибка сервера:', response.status, await response.text());
@@ -229,7 +236,6 @@
         }
     }
 
-    // Загрузка сообщений чата
     async function loadMessages() {
         console.log('Загрузка сообщений для чата:', chatId);
         const chatContainer = document.getElementById('chat-container');
@@ -250,23 +256,20 @@
                 console.error('Ошибка загрузки сообщений:', response.status, await response.text());
             }
         } catch (error) {
-            console.error('Ошибка при загрузке сообщений:', error);
+            console.error('Ошибка при загрузки сообщений:', error);
         }
     }
 
-    // Включение/выключение DeepSearch (заглушка)
     function toggleDeepSearch() {
         console.log('DeepSearch нажат');
         alert('DeepSearch пока не реализован');
     }
 
-    // Включение/выключение Think (заглушка)
     function toggleThink() {
         console.log('Think нажат');
         alert('Think пока не реализован');
     }
 
-    // Настройка кастомного скроллбара
     function setupCustomScrollbar() {
         console.log('Настройка кастомного скроллбара');
         const chatContainer = document.getElementById('chat-container');
@@ -321,6 +324,8 @@
 
         updateCustomScrollbar();
     }
+
+    window.onunload = stopPolling;
 
     window.onload = initializeChat;
 </script>
