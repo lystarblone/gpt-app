@@ -6,10 +6,11 @@ from fastapi.staticfiles import StaticFiles
 from database import get_async_session, init_db
 from contextlib import asynccontextmanager
 from llm import get_conversation_chain, clean_response
-from models import Chat, Message
+from models import Chat, Message, User
 from schemas import MessageCreate, MessageResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from auth import hash_password, verify_password
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -47,14 +48,25 @@ async def login_page(request: Request):
 @app.post('/login')
 async def login(
     request: Request,
-    username: str = Form(...),
+    email: str = Form(...),
     password: str = Form(...),
     remember: bool = Form(False),
     db: AsyncSession = Depends(get_async_session)
 ):
-    # Здесь должна быть логика авторизации (проверка в базе данных)
-    logger.info(f"Попытка входа: {username}, remember: {remember}")
-    # Простое перенаправление для примера
+    logger.info(f"Попытка входа: {email}, remember: {remember}")
+    
+    result = await db.execute(select(User).filter(User.email == email))
+    user = result.scalars().first()
+    
+    if not user or not verify_password(password, user.hashed_password):
+        logger.warning(f"Неудачная попытка входа: {email}")
+        return templates.TemplateResponse(
+            'login.html',
+            {'request': request, 'error': 'Неверный email или пароль'},
+            status_code=401
+        )
+    
+    logger.info(f"Успешный вход: {email}")
     return RedirectResponse(url='/', status_code=303)
 
 @app.get('/register', response_class=HTMLResponse)
@@ -67,15 +79,42 @@ async def register_page(request: Request):
 @app.post('/register')
 async def register(
     request: Request,
-    username: str = Form(...),
     email: str = Form(...),
     password: str = Form(...),
     db: AsyncSession = Depends(get_async_session)
 ):
-    # Здесь должна быть логика регистрации (сохранение в базе данных)
-    logger.info(f"Попытка регистрации: {username}, {email}")
-    # Простое перенаправление для примера
-    return RedirectResponse(url='/login', status_code=303)
+    logger.info(f"Попытка регистрации: {email}")
+    
+    result = await db.execute(select(User).filter(User.email == email))
+    existing_user = result.scalars().first()
+    
+    if existing_user:
+        logger.warning(f"Пользователь уже существует: {email}")
+        return templates.TemplateResponse(
+            'register.html',
+            {'request': request, 'error': 'Email уже зарегистрирован'},
+            status_code=400
+        )
+    
+    hashed_password = hash_password(password)
+    new_user = User(
+        email=email,
+        hashed_password=hashed_password
+    )
+    db.add(new_user)
+    try:
+        await db.commit()
+        await db.refresh(new_user)
+        logger.info(f"Пользователь зарегистрирован: {email}")
+        return RedirectResponse(url='/', status_code=303)
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Ошибка при регистрации: {str(e)}")
+        return templates.TemplateResponse(
+            'register.html',
+            {'request': request, 'error': 'Ошибка при регистрации. Попробуйте снова.'},
+            status_code=500
+        )
 
 @app.post('/api/chat')
 async def create_chat(

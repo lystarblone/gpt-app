@@ -129,17 +129,26 @@
             text-decoration: underline;
             color: #ffffff;
         }
+
+        .error-message {
+            color: #ff4d4d;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body>
     <div class="wrapper">
         <form class="login" action="/login" method="POST">
-            <h1>Login</h1>
+            <h1>Вход</h1>
+            {% if error %}
+            <div class="error-message">{{ error }}</div>
+            {% endif %}
             <div class="input-box mb-3">
-                <input type="text" name="email" class="form-control" placeholder="Email" required>
+                <input type="email" name="email" class="form-control" placeholder="Email" required>
             </div>
             <div class="input-box mb-3">
-                <input type="password" name="password" class="form-control" placeholder="Password" required>
+                <input type="password" name="password" class="form-control" placeholder="Пароль" required>
             </div>
             <div class="remember-forgot">
                 <label><input type="checkbox" name="remember">Запомнить меня</label>
