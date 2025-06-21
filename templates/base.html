@@ -107,7 +107,7 @@
         .image-container {
             position: absolute;
             top: 10px;
-            left: 20px; /* Смещение вправо от правого края, чтобы не перекрывать auth-buttons */
+            left: 20px;
             z-index: 10;
         }
         .image-container img {
@@ -121,12 +121,14 @@
 <body>
 
 <!-- Кнопки авторизации -->
-{% if show_auth_buttons == 'true' %}
 <div class="auth-buttons">
+    {% if is_authenticated %}
+    <button class="auth-button" onclick="window.location.href='/logout'">Выйти</button>
+    {% else %}
     <button class="auth-button" onclick="window.location.href='/register'">Регистрация</button>
     <button class="auth-button" onclick="window.location.href='/login'">Войти</button>
+    {% endif %}
 </div>
-{% endif %}
 
 <!-- Основной контейнер -->
 <div class="container">
