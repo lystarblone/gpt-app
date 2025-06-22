@@ -4,7 +4,6 @@
 
 {% block styles %}
 <style>
-    /* Стили остаются без изменений */
     body {            
         justify-content: center;
         align-items: center;
@@ -22,12 +21,24 @@
         text-align: center;
         box-sizing: border-box;
     }
+    .logo-container {
+        display: flex;
+        align-items: center;
+        position: absolute;
+        top: 10px;
+        left: 20px;
+        z-index: 10;
+        text-decoration: none;
+        color: #fdfdfd;
+    }
+    .logo-container img {
+        width: 40px;
+        height: auto;
+        margin-right: 10px;
+    }
     .logo {
         font-size: 1.5vw;
-        position: absolute;
-        top: 1vh;
-        left: 1vw;
-        margin: 0;
+        font-weight: bold;
     }
     .chat-container {
         padding: 1vw;
@@ -39,7 +50,7 @@
         box-sizing: border-box;
         max-height: calc(100vh - 150px - 2vw - 20px);
         position: fixed;
-        top: 0;
+        top: 50px; /* Учитываем высоту логотипа */
         left: 50%;
         transform: translateX(-50%);
         scrollbar-width: none;
@@ -105,7 +116,7 @@
     .custom-scrollbar {
         position: fixed;
         right: 0.5vw;
-        top: 1vh;
+        top: 50px; /* Учитываем высоту логотипа */
         height: calc(100vh - 150px - 2vw - 20px);
         width: 0.8vw;
         background-color: #242628;
@@ -128,9 +139,11 @@
 
 {% block content %}
 <div class="container">
-    {% if not show_search_block %}
-    <div class="logo">Grok</div>
-    {% endif %}
+    <!-- Логотип и надпись Grok как ссылка на главную страницу -->
+    <a href="/" class="logo-container">
+        <img src="/static/img/logo.png" alt="Grok Logo">
+        <span class="logo">Grok</span>
+    </a>
     <div class="chat-container" id="chat-container"></div>
     <div class="custom-scrollbar" id="custom-scrollbar">
         <div class="custom-scrollbar-thumb" id="custom-scrollbar-thumb"></div>
@@ -182,7 +195,7 @@
         pollingInterval = setInterval(async () => {
             console.log('Проверка новых сообщений для чата:', chatId);
             await loadMessages();
-        }, 1000); // Уменьшили интервал до 1 секунды для быстрого подхвата ответа
+        }, 1000);
     }
 
     function stopPolling() {
